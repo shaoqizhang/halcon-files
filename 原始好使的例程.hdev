@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="17.12">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program demonstrates how to detect texture</c>
+<c>* defects with the texture inspection model.</c>
+<c>* First, a texture inspection model is created and trained</c>
+<c>* using images with regions of error-free texture.</c>
+<c>* Then, texture defects are detected in a set of</c>
+<c>* test images (novelty detection).</c>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'E:/gmm/photo/电弧/灰度化/i_1.bmp')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>NumImages := 30</l>
+<c>* Define the set of training images.</c>
+<l>TrainingImageIndices := [1,2,3]</l>
+<l>*TrainingROIs := {[20,70],[300,30],[500,250],[600,600]}</l>
+<c>* </c>
+<c>* Initialize the visualization.</c>
+<l>dev_open_window_fit_size (0, 0, Width, Height, -1, -1, WindowHandle)</l>
+<l>get_window_extents (WindowHandle, Row, Column, WindowWidth, WindowHeight)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<c>* </c>
+<l>Message := 'This example program demonstrates how to detect texture'</l>
+<l>Message[1] := 'defects with the texture inspection model.'</l>
+<l>Message[2] := ' '</l>
+<l>Message[3] := 'First, a texture inspection model is created and trained'</l>
+<l>Message[4] := 'using images with regions of error-free texture.'</l>
+<l>Message[5] := 'Then, texture defects are detected in a set of'</l>
+<l>Message[6] := 'test images (novelty detection).'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Create the internal data structures.</c>
+<l>create_texture_inspection_model ('basic', TextureInspectionModel)</l>
+<c>* </c>
+<c>* Read and add sample images for training.</c>
+<l>for Index := 0 to |TrainingImageIndices| - 1 by 1</l>
+<l>    read_image (Image, 'E:/gmm/photo/电弧/灰度化/i_' + TrainingImageIndices[Index]$'1')</l>
+<c>    * Use only good parts of the image for training</c>
+<l>    dev_display (Image)</l>
+<l>    draw_rectangle1 (WindowHandle, Row1, Column1, Row2, Column2)</l>
+<l>    gen_rectangle1 (Rectangle, Row1, Column1, Row2, Column2)</l>
+<l>    *gen_rectangle1 (Rectangle, TrainingROIs.at(0)[Index], TrainingROIs.at(1)[Index], TrainingROIs.at(2)[Index], TrainingROIs.at(3)[Index])</l>
+<l>    reduce_domain (Image, Rectangle, ImageReduced)</l>
+<c>    * Add the training image to the texture inspection model.</c>
+<l>    add_texture_inspection_model_image (ImageReduced, TextureInspectionModel, Indices)</l>
+<l>    dev_clear_window ()</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_line_width (4)</l>
+<l>    dev_set_draw ('margin')</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_display (Rectangle)</l>
+<l>    Message := 'Add region of error free texture (green)'</l>
+<l>    Message[1] := 'to the texture model'</l>
+<l>    dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>    Message := 'Image ' + (Index + 1) + ' of ' + |TrainingImageIndices|</l>
+<l>    dev_disp_text (Message, 'window', 478, 12, 'black', [], [])</l>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* </c>
+<c>* The training may take a while, especially when using large images.</c>
+<l>dev_clear_window ()</l>
+<l>Message[0] := 'Train the texture inspection model.'</l>
+<l>Message[1] := ' '</l>
+<l>Message[2] := 'This may take a minute (see the'</l>
+<l>Message[3] := 'status bar for the progress).'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<c>* </c>
+<c>* Define the training parameters.</c>
+<c>* Set normalization to 'weber' to allow the handling of images with different brightness.</c>
+<l>set_texture_inspection_model_param (TextureInspectionModel, 'patch_normalization', 'weber')</l>
+<c>* </c>
+<c>* Set the gmm preprocessing to 'none' to avoid a feature transformation.</c>
+<c>* Adjusting this parameter is usually not necessary.</c>
+<c>* It is done here to guarantee identical results to previous HALCON versions.</c>
+<l>set_texture_inspection_model_param (TextureInspectionModel, 'gmm_preprocessing', 'none')</l>
+<c>* </c>
+<c>* High resolution images lead to long training and execution times.</c>
+<c>* In many cases, the defects can be detected on lower resolutions</c>
+<c>* (corresponding to higher pyramid levels), as well.</c>
+<c>* In this example, we expect the defects being detectable on</c>
+<c>* higher pyramid levels. This speeds up training and execution time</c>
+<c>* a lot.</c>
+<c>* Only use levels 2, 3, 4 and 5.</c>
+<l>set_texture_inspection_model_param (TextureInspectionModel, 'levels', [2,3,4,5])</l>
+<c>* </c>
+<c>* Start the training.</c>
+<l>train_texture_inspection_model (TextureInspectionModel)</l>
+<c>*_texture_inspection_model (TextureInspectionModel, 'E:/gmm/创建的纹理模型/2.htim')</c>
+<c>* </c>
+<c>* Detect texture defects on all test images.</c>
+<l>dev_clear_window ()</l>
+<l>Message := 'Next, the trained texture model can be applied'</l>
+<l>Message[1] := 'to detect texture defects...'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<l>for Index := 1 to NumImages by 1</l>
+<l>    read_image (TestImage, 'E:/gmm/photo/电弧/灰度化/i_' + Index$'1')</l>
+<c>    * </c>
+<c>    * Inspect the current image.</c>
+<l>    apply_texture_inspection_model (TestImage, DefectCandidates, TextureInspectionModel, TextureInspectionResultID)</l>
+<c>    * Postprocessing</c>
+<l>    connection (DefectCandidates, ConnectedRegions)</l>
+<l>    select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 600, Width * Height)</l>
+<l>    area_center (SelectedRegions, Area, Row, Column)</l>
+<c>    * </c>
+<c>    * Display results.</c>
+<l>    dev_display (TestImage)</l>
+<l>    dev_set_line_width (2)</l>
+<l>    dev_set_color ('yellow')</l>
+<l>    dev_display (DefectCandidates)</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_set_line_width (4)</l>
+<l>    dev_display (SelectedRegions)</l>
+<l>    if (Area &gt; 0)</l>
+<l>        disp_message (WindowHandle, 'Not OK', 'window', 12, 12, 'white', 'red')</l>
+<l>        disp_message (WindowHandle, ['Defect regions','Defect candidate regions'], 'window', WindowHeight - 80, 12, ['red','yellow'], ['black','false'])</l>
+<l>    else</l>
+<l>        disp_message (WindowHandle, 'OK', 'window', 12, 12, 'white', 'forest green')</l>
+<l>    endif</l>
+<l>    if (Index &lt; NumImages)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

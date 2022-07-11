@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="17.12">
+<procedure name="main">
+<interface/>
+<body>
+<c>*读取图片</c>
+<l>read_image (Image, 'color/citrus_fruits_01')</l>
+<c>*返回输入图像对象Image的第一个通道的Pointer（指示器）。另外，这个算子也返回图像类型和图像的大小（width和height）。</c>
+<l>get_image_pointer1 (Image, Pointer, Type, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'white', WindowHandle)</l>
+<c>*用来设置当前窗口的字体属性，参数意思为字体大小为12，字体类型为“Courier New字体”，粗体，不倾斜。</c>
+<l>set_display_font (WindowHandle, 12, 'mono', 'true', 'false')</l>
+<c>* 定义region的填充模式， 如果参数DrawMode设置为'fill'，region显示为填充，如果设置为'margin'，则只显示轮廓。</c>
+<l>dev_set_draw ('margin')</l>
+<c>*设置线宽</c>
+<l>dev_set_line_width (2)</l>
+<c>*显示图片</c>
+<l>dev_display (Image)</l>
+<c>*其实以下几句可以写为一句dev_update_off ()</c>
+<l>dev_update_window ('off')</l>
+<l>dev_update_pc ('off')</l>
+<l>dev_update_var ('off')</l>
+<c>* 为特征量（区域的面积，圆度，和分类名）赋值</c>
+<l>FeaturesArea := []</l>
+<l>FeaturesCircularity := []</l>
+<l>ClassName := ['orange','lemon']</l>
+<c></c>
+<c>* 创建GMM分类器（特征数量，样本分类个数，类中心的个数，协方差矩阵的形式，预处理的形式，转换特征数，随机种子初始化GMM，GMM句柄）</c>
+<l>create_class_gmm (2, 2, 1, 'spherical', 'normalization', 10, 42, GMMHandle)</l>
+<c>* </c>
+<c>* 添加训练样本</c>
+<l>for I := 1 to 4 by 1</l>
+<l>    read_image (Image, 'color/citrus_fruits_' + I$'.2d')</l>
+<l>    dev_display (Image)</l>
+<c>    * 自定义函数，将图片进行预处理，得到区域特征。</c>
+<l>    get_regions (Image, SelectedRegions)</l>
+<c>    *将彩色图片分离为三个单通道图片</c>
+<c>    (decompose3 (Image, ImageRed, ImageGreen, ImageBlue)</c>
+<c>    *用于区域对象的颜色设为白</c>
+<l>    dev_set_color ('white')</l>
+<c>    *对单通道图片进行阈值处理，得到灰度值在50-255区间的图片</c>
+<l>    threshold (ImageRed, Region, 50, 255)</l>
+<c>    *将区域进行填充</c>
+<l>    fill_up (Region, RegionFillUp)</l>
+<c>    *用来计算输入区域中的所有连通域</c>
+<l>    connection (RegionFillUp, ConnectedRegions)</l>
+<c>    *根据形状特征（这里是面积）对区域进行筛选，对于大于50小于999999的形状保留。</c>
+<l>    select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 50, 999999)</l>
+<l>    return ())</l>
+<l>    dev_display (SelectedRegions)</l>
+<c>    *计算区域数量</c>
+<l>    count_obj (SelectedRegions, NumberObjects)</l>
+<c>    *对三个目标进行遍历，获取特征</c>
+<l>    for J := 1 to NumberObjects by 1</l>
+<c>    *从一个对象元组中选择一个区域，区域的排序索引应该是根据上面计算连通域的时候完成的。</c>
+<l>        select_obj (SelectedRegions, ObjectSelected, J)</l>
+<c>        *自定义函数，分别对圆度和面积进行计算，并返回区域中心点的坐标值。</c>
+<l>        get_features (ObjectSelected, WindowHandle, Circularity, Area, RowRegionCenter, ColumnRegionCenter)</l>
+<c>        （circularity (ObjectSelected, Circularity)</c>
+<l>            area_center (ObjectSelected, Area, Row, Column)</l>
+<l>            dev_set_color ('white')</l>
+<l>            return ()）</l>
+<c>        * 对变量赋值</c>
+<l>        FeaturesArea := [FeaturesArea,Area]</l>
+<l>        FeaturesCircularity := [FeaturesCircularity,Circularity]</l>
+<c>        *将元组的数值转换为浮点型</c>
+<l>        FeatureVector := real([Circularity,Area])</l>
+<c>        *该方法已提前将样本分为两类，每类数量已提前设定好，橘子和柠檬各两张图片</c>
+<l>        if (I &lt;= 2)</l>
+<c>        *将训练样本添加到训练数据中（GMM句柄，特征向量，类别ID为0，不添加高斯噪声）</c>
+<l>            add_sample_class_gmm (GMMHandle, FeatureVector, 0, 0)</l>
+<c>       *此过程在图形窗口“窗口句柄”中的位置（Row,Column）显示文本。（文本显示Add to Class加类名，行坐标，列坐标，黑色，box参数为ture,表示文本显示在橙色框中）</c>
+<l>            disp_message (WindowHandle, 'Add to Class:' + ClassName[0], 'window', RowRegionCenter, ColumnRegionCenter - 100, 'black', 'true')</l>
+<l>        else</l>
+<c>        *ID为1</c>
+<l>            add_sample_class_gmm (GMMHandle, FeatureVector, 1, 0)</l>
+<l>            disp_message (WindowHandle, 'Add to Class:' + ClassName[1], 'window', RowRegionCenter, ColumnRegionCenter - 100, 'black', 'true')</l>
+<l>        endif</l>
+<l>    endfor</l>
+<c>    *显示 'Press Run (F5) to continue' 在屏幕的右下角</c>
+<l>    disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<l>dev_clear_window ()</l>
+<c>* </c>
+<c>* 自定义函数，构建可视化空间，可以显示圆度和面积的二维坐标系，里面内容有点复杂，包括画坐标系，显示特征值两部分，有兴趣的同学可以仔细看看里面的代码来复现一遍，这里就不细述。两个特征变量里面分别有12个值，对应每个对象的特征值，将其放到坐标系中，橘子为深灰，柠檬为浅灰色。</c>
+<l>visualize_2D_feature_space (Cross, Height, Width, WindowHandle, FeaturesArea[0:5], FeaturesCircularity[0:5], 'dim gray', 18)</l>
+<c>* 'oranges', 40, 440</c>
+<l>visualize_2D_feature_space (Cross, Height, Width, WindowHandle, FeaturesArea[6:11], FeaturesCircularity[6:11], 'light gray', 18)</l>
+<c>* 'lemons', 70, 440</c>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* 训练分类器（句柄，最大迭代次数，阈值，计算方法，防止协方差矩阵异常的正则化值，类中心数量，每个类的迭代次数）这里就是halcon的便利之处，直接将大量的代码封装，我们只需要更改几个关键参数即可，但也要对GMM训练算法有所了解，后面会专门写一篇GMM算法的文章。</c>
+<l>train_class_gmm (GMMHandle, 100, 0.001, 'training', 0.0001, Centers, Iter)</l>
+<c>* </c>
+<c>* 分类，下面的基本就是上面提取特征值的过程，没啥特殊的，就不每行注释了。</c>
+<l>for I := 1 to 15 by 1</l>
+<l>    read_image (Image, 'color/citrus_fruits_' + I$'.2d')</l>
+<l>    dev_display (Image)</l>
+<c>    * 'Classify Image', 10, 10</c>
+<l>    get_regions (Image, SelectedRegions)</l>
+<l>    dev_display (SelectedRegions)</l>
+<l>    count_obj (SelectedRegions, NumberObjects)</l>
+<l>    for J := 1 to NumberObjects by 1</l>
+<l>        select_obj (SelectedRegions, ObjectSelected, J)</l>
+<l>        get_features (ObjectSelected, WindowHandle, Circularity, Area, RowRegionCenter, ColumnRegionCenter)</l>
+<l>        FeaturesArea := [FeaturesArea,Area]</l>
+<l>        FeaturesCircularity := [FeaturesCircularity,Circularity]</l>
+<l>        FeatureVector := real([Circularity,Area])</l>
+<c>        *应用上面训练的模型对测试数据的特征进行分类（句柄，特征向量，最佳类数（我的理解是指返回一种结果），分类结果（橘子是0，柠檬是1），后验概率，概率密度，归一化概率（通过这个概率进行判断））</c>
+<l>        classify_class_gmm (GMMHandle, FeatureVector, 1, ClassID, ClassProb, Density, KSigmaProb)</l>
+<c>        *显示信息</c>
+<l>        disp_message (WindowHandle, 'Class: ' + ClassName[ClassID], 'window', RowRegionCenter, ColumnRegionCenter - 100, 'black', 'true')</l>
+<l>        disp_message (WindowHandle, 'KSigmaProb: ' + KSigmaProb, 'window', RowRegionCenter + 30, ColumnRegionCenter - 100, 'black', 'true')</l>
+<l>    endfor</l>
+<c>    *如果测试图片数量不等于15，显示暂停。</c>
+<l>    if (I != 15)</l>
+<l>        disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>    endif</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* 清除分类器内存</c>
+<l>clear_class_gmm (GMMHandle)</l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="17.12">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Calculate a Gauss pyramid of scaled down images</c>
+<c>* </c>
+<l>read_image (Image, 'mreut')</l>
+<c>* </c>
+<c>* Init display</c>
+<l>dev_close_window ()</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowID)</l>
+<l>set_display_font (WindowID, 16, 'mono', 'true', 'false')</l>
+<c>* </c>
+<c>* Calculate gauss pyramid</c>
+<l>gen_gauss_pyramid (Image, ImagePyramid, 'constant', 0.5)</l>
+<c>* </c>
+<c>* Display all pyramid levels</c>
+<l>count_obj (ImagePyramid, Number)</l>
+<l>for Index := 1 to Number by 1</l>
+<l>    select_obj (ImagePyramid, Level, Index)</l>
+<l>    dev_display (Level)</l>
+<l>    disp_message (WindowID, 'Pyramid level ' + Index, 'window', 12, 12, 'black', 'true')</l>
+<l>    if (Index &lt; Number)</l>
+<l>        disp_continue_message (WindowID, 'black', 'true')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

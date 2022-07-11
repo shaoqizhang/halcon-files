@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="17.12">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_close_window()</l>
+<l>dev_open_window (0, 0, 512, 512, 'black', WindowHandle)</l>
+<l>read_image (Image, 'E:/python/fenkuai/wancheng/wuquexian/huidu/huidu_01.bmp')</l>
+<l>texture_laws (Image, ImageEL, 'el', 5, 5)</l>
+<l>dev_display (ImageEL)</l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

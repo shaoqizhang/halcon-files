@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="17.12">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program shows you how to use the GMM classifier for novelty</c>
+<c>* detection to perform a web inspection task.  To perform the novelty detection,</c>
+<c>* all pixels belonging to the single trained class are computed, and are then</c>
+<c>* subtracted from the classification ROI to extract the erroneous pixels.  For</c>
+<c>* the web inspection task, the GMM can consequently be used to detect</c>
+<c>* textures that do not correspond to the texture of the trained good objects.</c>
+<c>* </c>
+<l>dev_update_off ()</l>
+<c>* </c>
+<l>ReadPretrainedClassifier := false</l>
+<c>* Uncomment the following line to read the pretrained classifier from</c>
+<c>* disk. The training may last up to half a minute.</c>
+<l>* ReadPretrainedClassifier := true</l>
+<l>SaveClassifier := false</l>
+<c>* Uncomment the following line to write the GMM classifier to disk after training.</c>
+<l>* SaveClassifier := true</l>
+<c>* </c>
+<l>read_image (Image, 'E:/gmm/图片/树节小于1mm预处理后/i_1.bmp')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width/4, Height/4, 'black', WindowHandle)</l>
+<l>dev_set_color ('red')</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>get_system ('example_dir', HalconExamples)</l>
+<c>* The texture filters used for the classification will return artifacts at the image</c>
+<c>* borders because the images of the plastic mesh to be inspected do not</c>
+<c>* contain an integer number of mesh cells.  Because this would lead to wrongly</c>
+<c>* detected errors at the image borders, we must exclude the area close to the</c>
+<c>* image border from the training and classification.  This is done with the following</c>
+<c>* rectangle.  Note that the image is later scaled down by a factor of two.</c>
+<l>* gen_rectangle1 (Rectangle, 981.5, 541.5, 1145.5, 885.5)</l>
+<l>read_image (Huidu01, 'E:/python/fenkuai/wancheng/wuquexian/huidu/huidu_01.bmp')</l>
+<c></c>
+<l>* gen_rectangle1 (Rectangle, 10, 10, Height / 2 - 11, Width / 2 - 11)</l>
+<l>if (ReadPretrainedClassifier)</l>
+<c>    * Read the pretrained classifier from disk.</c>
+<l>    dev_display (Image)</l>
+<l>    disp_message (WindowHandle, 'Reading classifier from disk...', 'window', 10, 10, 'black', 'true')</l>
+<l>    read_class_gmm (HalconExamples + '/hdevelop/Segmentation/Classification/novelty_detection.gmm', GMMHandle)</l>
+<l>    wait_seconds (1.5)</l>
+<l>else</l>
+<c>    * Create the GMM classifier.</c>
+<l>    create_class_gmm (5, 1, [1,5], 'spherical', 'normalization', 5, 42, GMMHandle)</l>
+<c>    * The training is based on five images that contain no errors.</c>
+<l>    for J := 1 to 5 by 1</l>
+<l>        read_image (Image, 'E:/python/fenkuai/wancheng/wuquexian/huidu/huidu_' + J$'02')</l>
+<c>        * The images are zoomed down because the resolution of the mesh is very</c>
+<c>        * high.  This saves a large amount of processing time.</c>
+<l>        zoom_image_factor (Image, ImageZoomed, 0.5, 0.5, 'constant')</l>
+<l>        dev_display (ImageZoomed)</l>
+<l>        disp_message (WindowHandle, 'Adding training samples...', 'window', 10, 10, 'black', 'true')</l>
+<c>        * Generate the texture image.</c>
+<l>        gen_texture_image (ImageZoomed, ImageTexture)</l>
+<c>        * Add the samples to the classifier.</c>
+<l>        add_samples_image_class_gmm (ImageTexture, Huidu01, GMMHandle, 2.0)</l>
+<l>    endfor</l>
+<l>    dev_display (ImageZoomed)</l>
+<l>    disp_message (WindowHandle, 'Training GMM...', 'window', 10, 10, 'black', 'true')</l>
+<c>    * Train the GMM.</c>
+<l>    train_class_gmm (GMMHandle, 100, 0.1, 'training', 0.0001, Centers, Iter)</l>
+<l>*     if (SaveClassifier)</l>
+<l>*         write_class_gmm (GMMHandle, HalconExamples + '/hdevelop/Segmentation/Classification/novelty_detection.gmm')</l>
+<l>*     endif</l>
+<l>endif</l>
+<l>stop ()</l>
+<c>* Now detect errors in the plastic meshes.</c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (3)</l>
+<c></c>
+<l>for J := 1 to 30 by 1</l>
+<l>    read_image (Image, 'E:/gmm/图片/树节小于1mm预处理后/i_' + J$'1')</l>
+<l>*     read_image (Image, 'E:/冰勺/191030实验室冰勺图像处理/树节/背景彻底没有了/1.bmp')</l>
+<l>    zoom_image_factor (Image, ImageZoomed, 0.5, 0.5, 'constant')</l>
+<l>    dev_display (ImageZoomed)</l>
+<l>    dev_set_color ('white')</l>
+<l>*     dev_display (Huidu01)</l>
+<l>    gen_texture_image (ImageZoomed, ImageTexture)</l>
+<l>    reduce_domain (ImageTexture, Image, ImageTextureReduced)</l>
+<c>    * Classify samples belonging to the trained class with the GMM.</c>
+<l>    classify_image_class_gmm (ImageTextureReduced, Correct, GMMHandle, 0.001)</l>
+<c>    * Subtract them from the ROI to obtain the texture errors.</c>
+<l>    difference (Image, Correct, Errors)</l>
+<c>    * Postprocess the returned raw errors to remove insignificant parts of the</c>
+<c>    * detected errors.</c>
+<l>*     opening_circle (Errors, ErrorsOpening, 3.5)</l>
+<l>*     closing_circle (ErrorsOpening, ErrorsClosing, 3.5)</l>
+<l>*     connection (ErrorsClosing, ErrorsConnected)</l>
+<l>    connection (Errors, ConnectedRegions)</l>
+<l>    select_shape (ConnectedRegions, FinalErrors, 'area', 'and', 150, 1000000)</l>
+<l>    count_obj (FinalErrors, NumErrors)</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (FinalErrors)</l>
+<l>    if (NumErrors &gt; 0)</l>
+<l>        disp_message (WindowHandle, 'Mesh not OK', 'window', 10, 10, 'red', 'true')</l>
+<l>    else</l>
+<l>        disp_message (WindowHandle, 'Mesh OK', 'window', 10, 10, 'forest green', 'true')</l>
+<l>    endif</l>
+<l>*     if (J &lt; 14)</l>
+<l>*         disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>*     endif</l>
+<l>    dump_window_image (Image1, WindowHandle)</l>
+<l>    write_image (Image1, 'bmp', 0, 'E:/gmm/图片/树节小于1mm预处理后检测图片/ii_'+J$'.')</l>
+<l>    stop ()</l>
+<c>    </c>
+<l>endfor</l>
+<l>clear_class_gmm (GMMHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="gen_texture_image">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="ImageTexture" base_type="iconic" dimension="0"/>
+</oo>
+</interface>
+<body>
+<c>* The texture image is a five-channel image that contains the result of applying</c>
+<c>* five different Laws filters, which basically correspond to first and second</c>
+<c>* derivatives, and smoothing them sufficiently.</c>
+<l>texture_laws (Image, ImageEL, 'el', 5, 5)</l>
+<l>texture_laws (Image, ImageLE, 'le', 5, 5)</l>
+<l>texture_laws (Image, ImageES, 'es', 1, 5)</l>
+<l>texture_laws (Image, ImageSE, 'se', 1, 5)</l>
+<l>texture_laws (Image, ImageEE, 'ee', 2, 5)</l>
+<l>compose5 (ImageEL, ImageLE, ImageES, ImageSE, ImageEE, ImageLaws)</l>
+<l>smooth_image (ImageLaws, ImageTexture, 'gauss', 5)</l>
+<l>return ()</l>
+</body>
+<docu id="gen_texture_image">
+<parameters>
+<parameter id="Image"/>
+<parameter id="ImageTexture"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

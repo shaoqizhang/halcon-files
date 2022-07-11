@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="17.12">
+<procedure name="main">
+<interface/>
+<body>
+<c>* This example program demonstrates how to fine-tune</c>
+<c>* the texture inspection model.</c>
+<c>* First, a texture inspection model is created and trained</c>
+<c>* using a set of of error-free texture images.</c>
+<c>* Next, the parameters are fine-tuned on one of the defective</c>
+<c>* test images.</c>
+<c>* In a last step a collection of defective and non-defective</c>
+<c>* images are tested.</c>
+<c>* </c>
+<c>* Initialization</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>read_image (Image, 'E:/gmm/图片/树节小于1mm只灰度处理/i_1')</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>NumImages := 29</l>
+<c>* Define the set of training images.</c>
+<l>TrainingImageIndices := [1,2]</l>
+<l>TextureModelFilename := 'texture_model_carpet'</l>
+<c>* </c>
+<c>* Initialize the visualization.</c>
+<l>dev_open_window_fit_size (0, 0, Width, Height, -1, -1, WindowHandle1)</l>
+<l>get_window_extents (WindowHandle1, Row, Column, WindowWidth, WindowHeight)</l>
+<l>set_display_font (WindowHandle1, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (2)</l>
+<c>* </c>
+<l>Message := 'This example program demonstrates how to fine-tune'</l>
+<l>Message[1] := 'the texture inspection model for defect detection:'</l>
+<l>Message[2] := ' '</l>
+<l>Message[3] := '(1) A texture inspection model is created and trained'</l>
+<l>Message[4] := '    using images of error-free texture.'</l>
+<l>Message[5] := ' '</l>
+<l>Message[6] := '(2) The parameters are fine-tuned on one of the test'</l>
+<l>Message[7] := '    images.'</l>
+<l>Message[8] := ' '</l>
+<l>Message[9] := '(3) Defective and non-defective images are tested.'</l>
+<l>Message[10] := ' '</l>
+<l>Message[11] := 'To fully understand this program, please read the'</l>
+<l>Message[12] := 'comments in the source code.'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* First we try to read the texture inspection model</c>
+<c>* (This only works if the example has been run before)</c>
+<l>dev_clear_window ()</l>
+<l>*file_exists (TextureModelFilename + '.htim', FileExists)</l>
+<l>*if (FileExists)</l>
+<l>    *read_texture_inspection_model (TextureModelFilename, TextureInspectionModel)</l>
+<l>    *get_texture_inspection_model_param (TextureInspectionModel, 'levels', Levels)</l>
+<l>    Message := 'The previously trained texture inspection model was read.'</l>
+<l>    Message[1] := ' '</l>
+<l>*else</l>
+<c>    * Train a new texture inspection model.</c>
+<c>    * </c>
+<c>    * Create the internal data structures.</c>
+<l>    create_texture_inspection_model ('basic', TextureInspectionModel)</l>
+<c>    * </c>
+<c>    * Read and add sample images for training.</c>
+<l>    for Index := 0 to |TrainingImageIndices| - 1 by 1</l>
+<l>        read_image (Image, 'E:/gmm/图片/树节小于1mm只灰度处理/i_' + TrainingImageIndices[Index]$'1')</l>
+<l>        dev_display (Image)</l>
+<l>        Message := 'Add image ' + (Index + 1) + ' of ' + |TrainingImageIndices| + ' to training set.'</l>
+<l>        dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<c>        * Use the whole image as texture sample</c>
+<c>        * In different applications you may want to reduce the image domain first.</c>
+<l>        draw_rectangle1 (WindowHandle1, Row1, Column1, Row2, Column2)</l>
+<l>        gen_rectangle1 (Rectangle, Row1, Column1, Row2, Column2)</l>
+<l>        reduce_domain (Image, Rectangle, ImageReduced)</l>
+<l>        add_texture_inspection_model_image (ImageReduced, TextureInspectionModel, Indices)</l>
+<l>        dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>        stop ()</l>
+<l>    endfor</l>
+<c>    * </c>
+<c>    * The training may take a while, especially when using large images.</c>
+<l>    dev_display (Image)</l>
+<l>    Message[0] := 'Train the texture inspection model.'</l>
+<l>    Message[1] := ' '</l>
+<l>    Message[2] := 'This may take a minute (see the'</l>
+<l>    Message[3] := 'status bar for the progress).'</l>
+<l>    dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<c>    * </c>
+<c>    * Define the training parameters.</c>
+<c>    * Set normalization to 'weber' to allow the handling of images with different brightness.</c>
+<l>    set_texture_inspection_model_param (TextureInspectionModel, 'patch_normalization', 'weber')</l>
+<c>    * </c>
+<c>    * High resolution images lead to long training and execution times.</c>
+<c>    * In many cases, the defects can be detected on lower resolutions</c>
+<c>    * (corresponding to higher pyramid levels), as well.</c>
+<l>    Levels := [2,3,4]</l>
+<l>    set_texture_inspection_model_param (TextureInspectionModel, 'levels', Levels)</l>
+<c>    * </c>
+<c>    * Start the training.</c>
+<l>    train_texture_inspection_model (TextureInspectionModel)</l>
+<c>    * </c>
+<c>    * Write the texture model to disc</c>
+<l>    write_texture_inspection_model (TextureInspectionModel, TextureModelFilename)</l>
+<c>    * </c>
+<l>    Message := 'The training was successful.'</l>
+<l>    Message[1] := ' '</l>
+<l>*endif</l>
+<c>* </c>
+<l>Message[2] := 'We can now finetune the parameters by evaluating the'</l>
+<l>Message[3] := 'novelty detection results on a test image'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* We get the novelty thresholds to display them in the test phase.</c>
+<c>* The novelty thresholds define for each pyramid level at which point the</c>
+<c>* distinction between defective and non-defective texture is made.</c>
+<c>* Lower thresholds lead to more detected errors but they may also lead</c>
+<c>* to more false positives (non-defective texture regions that are</c>
+<c>* returned as defects).</c>
+<l>get_texture_inspection_model_param (TextureInspectionModel, 'novelty_threshold', NoveltyThreshold)</l>
+<c>* </c>
+<c>* Cause that debugging information is stored during the execution of</c>
+<c>* apply_texture_inspection_model. Note that the result handle must be</c>
+<c>* freed with clear_texture_inspection_result.</c>
+<l>set_texture_inspection_model_param (TextureInspectionModel, 'gen_result_handle', 'true')</l>
+<c>* </c>
+<l>dev_close_window ()</l>
+<l>WindowWidth := 320</l>
+<l>WindowHeight := 280</l>
+<l>dev_open_window (0, 0, WindowWidth, WindowHeight, 'black', WindowHandle1)</l>
+<l>set_display_font (WindowHandle1, 16, 'mono', 'true', 'false')</l>
+<l>dev_open_window (0, WindowWidth + 8, WindowWidth, WindowHeight, 'black', WindowHandle2)</l>
+<l>set_display_font (WindowHandle2, 16, 'mono', 'true', 'false')</l>
+<l>dev_open_window (0, 2 * WindowWidth + 16, WindowWidth, WindowHeight, 'black', WindowHandle3)</l>
+<l>set_display_font (WindowHandle3, 16, 'mono', 'true', 'false')</l>
+<l>dev_open_window (WindowHeight + 50, WindowWidth / 2 + 8, 2 * WindowWidth, 2 * WindowHeight, 'black', WindowHandle4)</l>
+<l>set_display_font (WindowHandle4, 16, 'mono', 'true', 'false')</l>
+<l>WindowHandles := [WindowHandle1,WindowHandle2,WindowHandle3]</l>
+<c>* </c>
+<c>* Detect texture defects on the first training image to fine tune the parameters.</c>
+<c>*在第一个训练图像上检测纹理缺陷以微调参数。</c>
+<l>for Index := 1 to 3 by 1</l>
+<l>    ImageIndex := 5</l>
+<l>    read_image (TestImage, 'E:/gmm/图片/树节小于1mm只灰度处理/i_' + ImageIndex$'1')</l>
+<c>    * </c>
+<c>    * Inspect the current image.</c>
+<c>    </c>
+<l>    threshold (TestImage, Regions, 53, 201)</l>
+<l>    connection (Regions, ConnectedRegions1)</l>
+<l>    select_shape_std (ConnectedRegions1, SelectedRegions1, 'max_area', 70)</l>
+<l>    fill_up (SelectedRegions1, RegionFillUp)</l>
+<l>    dilation_circle (RegionFillUp, RegionDilation, 100)</l>
+<l>    erosion_circle (RegionDilation, RegionErosion, 130)</l>
+<l>    reduce_domain (TestImage, RegionErosion, ImageReduced)</l>
+<l>    apply_texture_inspection_model (ImageReduced, NoveltyRegion, TextureInspectionModel, TextureInspectionResultID)</l>
+<c>    * Inspect debugging information.</c>
+<c>    * The novelty score images can be used to fine tune the novelty thresholds individually.</c>
+<l>    get_texture_inspection_result_object (NovScoreImage, TextureInspectionResultID, 'novelty_score_image')</l>
+<l>    get_texture_inspection_result_object (NovRegion, TextureInspectionResultID, 'novelty_region')</l>
+<c>    * Clean up the result handle</c>
+<l>    clear_texture_inspection_result (TextureInspectionResultID)</l>
+<c>    * </c>
+<c>    * Display the results for the single scales</c>
+<l>    count_obj (NovScoreImage, Number)</l>
+<l>    for Level := 1 to Number by 1</l>
+<l>        CurrentWindow := WindowHandles[Level - 1]</l>
+<l>        dev_set_window (CurrentWindow)</l>
+<l>        dev_clear_window ()</l>
+<l>        select_obj (NovScoreImage, NovScoreImageL, Level)</l>
+<l>        select_obj (NovRegion, NovRegionL, Level)</l>
+<l>        get_image_size (NovScoreImageL, Width, Height)</l>
+<l>        dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>        dev_display (NovScoreImageL)</l>
+<l>        Legend := 'Novelty region (level ' + Levels[Level - 1] + ')'</l>
+<l>        dev_set_color ('red')</l>
+<l>        dev_set_line_width (2)</l>
+<c>        * </c>
+<l>        dev_display (NovRegionL)</l>
+<l>        dev_disp_text (['Novelty score image (level ' + Levels[Level - 1] + ')','Novelty threshold: ' + NoveltyThreshold[Level - 1]$'.1f'], 'window', 12, 12, 'black', [], [])</l>
+<l>        dev_disp_text (Legend, 'window', WindowHeight - 30, 12, 'white', ['box_color','shadow'], ['black','false'])</l>
+<c>        * Note that the NoveltyRegion returned by apply_texture_inspection_model is derived by</c>
+<c>        * combining the individual novelty regions of the individual pyramid levels.</c>
+<l>    endfor</l>
+<c>    * </c>
+<c>    * Display results.</c>
+<l>    dev_set_window (WindowHandle4)</l>
+<l>    dev_display (TestImage)</l>
+<l>    dev_set_line_width (2)</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (NoveltyRegion)</l>
+<l>    area_center (NoveltyRegion, Area, Row, Column)</l>
+<l>    if (Index &lt; 3)</l>
+<l>        dev_disp_text ('Result', 'window', 12, 12, 'black', [], [])</l>
+<l>    else</l>
+<l>        dev_disp_text ('Final result', 'window', 12, 12, 'black', [], [])</l>
+<l>    endif</l>
+<c>    * </c>
+<c>    * For the first image we finetune the parameters to ensure optimal</c>
+<c>    * parameter settings</c>
+<l>    if (Index == 1)</l>
+<l>        Message[0] := 'There are many small errors in the image.'</l>
+<l>        Message[1] := 'It is possible to adapt the sensitivity by altering'</l>
+<l>        Message[2] := 'the novelty thresholds.'</l>
+<l>        Message[3] := 'For example, this can be done by decreasing the'</l>
+<l>        Message[4] := 'value of the \'sensitivity\' parameter'</l>
+<l>        dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<c>        * Fine tuning of the novelty thresholds.</c>
+<c>        * </c>
+<c>        * Set the sensitivity of the threshold calculation. Negative values lead to</c>
+<c>        * higher thresholds and therefore to less detected defects.</c>
+<l>        set_texture_inspection_model_param (TextureInspectionModel, 'sensitivity', -10)</l>
+<l>        get_texture_inspection_model_param (TextureInspectionModel, 'novelty_threshold', NoveltyThreshold)</l>
+<l>    endif</l>
+<c>    * </c>
+<l>    if (Index == 2)</l>
+<l>        Message := 'It is also possible to adapt the sensitivity'</l>
+<l>        Message[1] := 'of the single levels individually by manipulating'</l>
+<l>        Message[2] := 'the novelty boundaries directly.'</l>
+<l>        dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<c>        * Fine tuning of the novelty thresholds.</c>
+<c>        * </c>
+<c>        * Get the (automatically determined) novelty thresholds from the texture</c>
+<c>        * inspection model and set appropriately modified values as new novelty thresholds.</c>
+<c>        * </c>
+<c>        * If we set the novelty boundaries explicitly, the sensitivity is neglected.</c>
+<c>        * We set it back to 0 here to avoid confusion</c>
+<l>        set_texture_inspection_model_param (TextureInspectionModel, 'sensitivity', -30)</l>
+<c>        * </c>
+<l>        Offset := [25,10,30]</l>
+<l>        get_texture_inspection_model_param (TextureInspectionModel, 'novelty_threshold', NoveltyThreshold)</l>
+<l>        set_texture_inspection_model_param (TextureInspectionModel, 'novelty_threshold', Offset + NoveltyThreshold)</l>
+<l>        get_texture_inspection_model_param (TextureInspectionModel, 'novelty_threshold', NoveltyThreshold)</l>
+<l>    endif</l>
+<c>    * </c>
+<l>    dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>    stop ()</l>
+<l>endfor</l>
+<c>* </c>
+<l>for Level := 1 to |WindowHandles| by 1</l>
+<l>    dev_set_window (WindowHandles[Level - 1])</l>
+<l>    dev_clear_window ()</l>
+<l>endfor</l>
+<l>dev_set_window (WindowHandle4)</l>
+<l>dev_clear_window ()</l>
+<l>Message := 'With the fine-tuned parameters we can now'</l>
+<l>Message[1] := 'detect defects in all training and test images...'</l>
+<l>dev_disp_text (Message, 'window', 12, 12, 'black', [], [])</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>stop ()</l>
+<c>* </c>
+<c>* Detect texture defects on all test images.</c>
+<l>for Index := 1 to NumImages by 1</l>
+<l>    read_image (TestImage, 'E:/gmm/图片/树节小于1mm只灰度处理/i_' + Index$'1')</l>
+<l>*     gray_projections (TestImage, NovScoreImageL, 'simple', HorProjection1, VertProjection1)</l>
+<c>    * </c>
+<l>    threshold (TestImage, Regions, 53, 201)</l>
+<l>    connection (Regions, ConnectedRegions1)</l>
+<l>    select_shape_std (ConnectedRegions1, SelectedRegions1, 'max_area', 70)</l>
+<l>    fill_up (SelectedRegions1, RegionFillUp)</l>
+<l>    dilation_circle (RegionFillUp, RegionDilation, 100)</l>
+<l>    erosion_circle (RegionDilation, RegionErosion, 130)</l>
+<l>    reduce_domain (TestImage, RegionErosion, ImageReduced)</l>
+<c>    * Inspect the current image.</c>
+<l>    apply_texture_inspection_model (ImageReduced, NoveltyRegion, TextureInspectionModel, TextureInspectionResultID)</l>
+<c>    * Inspect debugging information.</c>
+<l>    get_texture_inspection_result_object (NovScoreImage, TextureInspectionResultID, 'novelty_score_image')</l>
+<l>    get_texture_inspection_result_object (NovRegion, TextureInspectionResultID, 'novelty_region')</l>
+<c>    * Clean up the result handle</c>
+<l>    clear_texture_inspection_result (TextureInspectionResultID)</l>
+<c>    * </c>
+<c>    * Display the results for the single scales</c>
+<l>    count_obj (NovScoreImage, Number)</l>
+<l>    for Level := 1 to Number by 1</l>
+<l>        CurrentWindow := WindowHandles[Level - 1]</l>
+<l>        dev_set_window (CurrentWindow)</l>
+<l>        dev_clear_window ()</l>
+<l>        select_obj (NovScoreImage, NovScoreImageL, Level)</l>
+<l>        select_obj (NovRegion, NovRegionL, Level)</l>
+<l>        get_image_size (NovScoreImageL, Width, Height)</l>
+<l>        dev_set_part (0, 0, Height - 1, Width - 1)</l>
+<l>        dev_display (NovScoreImageL)</l>
+<l>        Legend := 'Novelty region (level ' + Levels[Level - 1] + ')'</l>
+<l>        dev_set_color ('red')</l>
+<l>        dev_set_line_width (2)</l>
+<c>        * </c>
+<l>        dev_display (NovRegionL)</l>
+<l>        dev_disp_text (['Novelty score image (level ' + Levels[Level - 1] + ')','Novelty threshold: ' + NoveltyThreshold[Level - 1]$'.1f'], 'window', 12, 12, 'black', [], [])</l>
+<l>        dev_disp_text (Legend, 'window', WindowHeight - 50, 12, ['red','white'], ['box_color','shadow'], ['black','false'])</l>
+<c>        * Note that the NoveltyRegion returned by apply_texture_inspection_model is derived by</c>
+<c>        * combining the individual novelty regions of the individual pyramid levels.</c>
+<l>    endfor</l>
+<c>    * </c>
+<c>    * Display results.</c>
+<l>    dev_set_window (WindowHandle4)</l>
+<l>    dev_display (TestImage)</l>
+<l>    dev_set_line_width (2)</l>
+<l>    dev_set_color ('red')</l>
+<l>    dev_display (NoveltyRegion)</l>
+<l>    area_center (NoveltyRegion, Area, Row, Column)</l>
+<l>    gray_projections (TestImage,NovScoreImageL, 'simple', HorProjection, VertProjection)</l>
+<l>*     gen_region_points (Region, Row, Column)</l>
+<l>*     entropy_gray (NovRegionL, NovScoreImageL, Entropy, Anisotropy)</l>
+<l>    if (Area &gt; 100)</l>
+<l>        dev_disp_text ('Not OK', 'window', 12, 12, 'white', 'box_color', 'red')</l>
+<l>    else</l>
+<l>        dev_disp_text ('OK', 'window', 12, 12, 'white', 'box_color', 'forest green')</l>
+<l>    endif</l>
+<c>    * </c>
+<l>    if (Index &lt; NumImages)</l>
+<l>        dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>        dump_window_image (Image2, WindowHandle4)</l>
+<l>        write_image (Image2, 'bmp', 0, 'E:/gmm/图片/效果不错/ii_'+Index$'.')</l>
+<l>        stop ()</l>
+<l>    endif</l>
+<l>endfor</l>
+<c></c>
+<c>* </c>
+<c></c>
+<l>    stop ()</l>
+<l>*write_texture_inspection_model (TextureInspectionModel, 'E:/gmm/创建的纹理模型/结果比较好.htim')</l>
+<c>* Clean up memory.</c>
+<l>clear_texture_inspection_model (TextureInspectionModel)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

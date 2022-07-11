@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="17.12">
+<procedure name="main">
+<interface/>
+<body>
+<l>* read_image (Image, 'G:/Halcon/机器视觉/images/bin_switch/bin_switch_3.png')</l>
+<l>read_image (Image, 'E:/冰勺/191030实验室冰勺图像处理/树节＞3mm/2018116163147_1a.JPG')</l>
+<c></c>
+<l>regiongrowing (Image, Regions, 3, 3, 1, 500)</l>
+<c>*计算Image图像中Region区域的面积Area和重心（Row，Column）</c>
+<l>area_center_gray (Regions, Image, Area, Row, Column)</l>
+<c>*计算共生矩阵和推导出灰度特征值</c>
+<c>*Direction：灰度共生矩阵计算的方向    Energy：灰度值能量     Correlation：灰度值的相互关系</c>
+<c>*Homogeneity：灰度值的均匀性 Contrast：灰度值的对比度</c>
+<l>cooc_feature_image (Regions, Image, 6, 0, Energy, Correlation, Homogeneity, Contrast)</l>
+<c>*计算Image图像的Region区域的Ra，Rb和Phi。</c>
+<l>elliptic_axis_gray (Regions, Image, Ra, Rb, Phi)</l>
+<c>* Image图像中Region区域的计算熵Entropy和各向异性Anisotropy</c>
+<l>entropy_gray (Regions, Image, Entropy, Anisotropy)</l>
+<c>*从单一图像 Image中估计图像的噪声</c>
+<c>*Sigma：加性噪声的标准偏差 Method ：估计噪声的方法 Method∈{foerstner、immerkaer、least_squares、mean}</c>
+<c></c>
+<l>estimate_noise (Image, 'mean', 20, Sigma)</l>
+<c>*计算一阶灰度平面的灰度矩阵和灰度值的逼近参数</c>
+<c>*Algorithm：采用的算法 Algorithm：迭代次数 ClippingFactor：消除临界值的削波系数</c>
+<l>fit_surface_first_order (Regions, Image, 'regression', 5, 2, Alpha, Beta, Gamma)</l>
+<c>*计算二阶灰度平面的灰度矩阵和灰度值的逼近参数。</c>
+<l>fit_surface_second_order (Regions, Image, 'regression', 5, 2, Alpha1, Beta1, Gamma1, Delta, Epsilon, Zeta)</l>
+<c>*确定区域Regions的模糊熵 将图像视为模糊集合 Apar为模糊区域的起始点 Cpar为模糊区域的结束点 Entropy为Regions的模糊熵</c>
+<l>fuzzy_entropy (Regions, Image, 0, 255, Entropy1)</l>
+<c>*计算Region区域的模糊周长</c>
+<l>fuzzy_perimeter (Regions, Image, 0, 255, Perimeter)</l>
+<c>*生成Image图像Region区域的共生矩阵</c>
+<l>gen_cooc_matrix (Regions, Image, Matrix, 6, 0)</l>
+<l>* dev_set_paint ('histogram')</l>
+<c>*获取Image图像Region区域的灰度相对直方图RelativeHisto和绝对直方图AbsoluteHisto。</c>
+<c>*注意：Region区域必须先计算过它的直方图。</c>
+<l>* gray_histo (Regions, Matrix, AbsoluteHisto, RelativeHisto)</l>
+<c>*计算Region区域在水平方向和垂直方向的灰度值投影。</c>
+<l>gray_projections (Regions, Image, 'simple', HorProjection, VertProjection)</l>
+<c>*计算二通道灰度图像的直方图</c>
+<l>histo_2dim (Regions, Image, Image, Histo2Dim)</l>
+<c>* 计算region区域的灰度平均值和偏差</c>
+<l>intensity (Regions, Histo2Dim, Mean, Deviation)</l>
+<c>*计算Region区域的最大最小灰度值。 Range：最大灰度值和最小灰度值之间的差距</c>
+<l>min_max_gray (Regions, Histo2Dim, 0, Min, Max, Range)</l>
+<c>*计算平面的灰度矩阵和灰度值的逼近参数</c>
+<l>* moments_gray_plane (Regions, Histo2Dim, MRow, MCol, Alpha2, Beta2, Mean1)</l>
+<c>*逼近的图象平面计算灰度值偏差</c>
+<l>* plane_deviation (Regions, Histo2Dim, Deviation1)</l>
+<c>*根据灰度值选择区域</c>
+<l>select_gray (Regions, Histo2Dim, SelectedRegions, 'mean', 'and', 128, 255)</l>
+<l>shape_histo_all (SelectedRegions, Histo2Dim, 'connected_components', AbsoluteHisto1, RelativeHisto1)</l>
+<l>shape_histo_point (SelectedRegions, Histo2Dim, 'convexity', Row, Column, AbsoluteHisto2, RelativeHisto2)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>
